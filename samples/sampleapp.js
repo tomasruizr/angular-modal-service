@@ -6,6 +6,7 @@ app.controller('SampleController', ['$scope', 'ModalService', function($scope, M
   $scope.yesNoResult = null;
   $scope.complexResult = null;
   $scope.customResult = null;
+  $scope.transcludeResult = null;
 
   $scope.showYesNo = function() {
 
@@ -33,6 +34,24 @@ app.controller('SampleController', ['$scope', 'ModalService', function($scope, M
       modal.element.modal();
       modal.close.then(function(result) {
         $scope.complexResult  = "Name: " + result.name + ", age: " + result.age;
+      });
+    });
+
+  };
+  $scope.showTransclude = function() {
+
+    ModalService.showModal({
+      transcludeTemplateUrl: "transclude/transcludeTemplate.html",
+      templateUrl: "transclude/transclude.html",
+      controller: "TranscludeController",
+      inputs: {
+        "okButton": "Plomo",
+        title: "A Transcluded More Complex Example"
+      }
+    }).then(function(modal) {
+      modal.element.modal();
+      modal.close.then(function(result) {
+        $scope.transcludeResult  = "Name: " + result.name + ", age: " + result.age;
       });
     });
 

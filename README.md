@@ -6,6 +6,11 @@ angular-modal-service
 [![Dependencies](https://david-dm.org/dwmkerr/angular-modal-service.svg?theme=shields.io)](https://david-dm.org/dwmkerr/angular-modal-service)
 [![Dev Dependencies](https://david-dm.org/dwmkerr/angular-modal-service/dev-status.svg?theme=shields.io)](https://david-dm.org/dwmkerr/angular-modal-service#info=devDependencies)
 
+Modified by Tomás Ruiz (tomasruizr@gmail.com)
+Added the posibility to pass a "transclude template" in order to reuse forms already created in a modal way, only specifying the modal tags necesesary to work.
+See below for more details.
+
+
 Modal service for AngularJS - supports creating popups and modals via a service. See [a quick fiddle](http://jsfiddle.net/dwmkerr/8MVLJ/) or a full set of samples at [dwmkerr.github.io/angular-modal-service](http://dwmkerr.github.io/angular-modal-service).
 
 1. [Usage](#usage)
@@ -119,6 +124,8 @@ The `showModal` function takes an object with these fields:
 * `templateUrl`: The URL of the HTML template to use for the modal.
 * `template`: If `templateUrl` is not specified, you can specify `template` as raw
   HTML for the modal.
+* `transcludeTemplateUrl`: The URL of the HTML template to use for the modal barebone for example the modal tags in bootstrap.
+* `transcludeTemplate`: If `transcludeTemplateUrl` is not specified, you can specify `transcludeTemplate` as raw HTML for the modal. 
 * `inputs`: A set of values to pass as inputs to the controller. Each value provided
   is injected into the controller constructor.
 * `appendElement`: The custom angular element to append the modal to instead of default `body` element.

@@ -68,89 +68,104 @@
           controllerName = controllerName + " as " + options.controllerAs;
         }
 
-        //  Get the actual html of the template.
-        getTemplate(options.template, options.templateUrl)
-          .then(function(template) {
+        //  Added options.transclude for templating by Tomás Ruiz
+        var transcludeTemplateDefer = $q.defer();
+        if (options.transcludeTemplate || options.transcludeTemplateUrl){
+          getTemplate(options.transcludeTemplate, options.transcludeTemplateUrl)
+            .then(function(transcludeTemp) {
+              transcludeTemplateDefer.resolve(transcludeTemp);
+            });
+        } else {
+          transcludeTemplateDefer.resolve();
+        }
+        transcludeTemplateDefer.promise.then(function(transclude) {
+          //  Get the actual html of the template.
+          getTemplate(options.template, options.templateUrl)
+            .then(function(template) {
 
-            //  Create a new scope for the modal.
-            var modalScope = $rootScope.$new();
+              //  Create a new scope for the modal.
+              var modalScope = $rootScope.$new();
 
-            //  Create the inputs object to the controller - this will include
-            //  the scope, as well as all inputs provided.
-            //  We will also create a deferred that is resolved with a provided
-            //  close function. The controller can then call 'close(result)'.
-            //  The controller can also provide a delay for closing - this is
-            //  helpful if there are closing animations which must finish first.
-            var closeDeferred = $q.defer();
-            var inputs = {
-              $scope: modalScope,
-              close: function(result, delay) {
-                if(delay === undefined || delay === null) delay = 0;
-                window.setTimeout(function() {
-                  //  Resolve the 'close' promise.
-                  closeDeferred.resolve(result);
+              //  Create the inputs object to the controller - this will include
+              //  the scope, as well as all inputs provided.
+              //  We will also create a deferred that is resolved with a provided
+              //  close function. The controller can then call 'close(result)'.
+              //  The controller can also provide a delay for closing - this is
+              //  helpful if there are closing animations which must finish first.
+              var closeDeferred = $q.defer();
+              var inputs = {
+                $scope: modalScope,
+                close: function(result, delay) {
+                  if(delay === undefined || delay === null) delay = 0;
+                  window.setTimeout(function() {
+                    //  Resolve the 'close' promise.
+                    closeDeferred.resolve(result);
 
-                  //  We can now clean up the scope and remove the element from the DOM.
-                  modalScope.$destroy();
-                  modalElement.remove();
-                  
-                  //  Unless we null out all of these objects we seem to suffer
-                  //  from memory leaks, if anyone can explain why then I'd 
-                  //  be very interested to know.
-                  inputs.close = null;
-                  deferred = null;
-                  closeDeferred = null;
-                  modal = null;
-                  inputs = null;
-                  modalElement = null;
-                  modalScope = null;
-                }, delay);
+                    //  We can now clean up the scope and remove the element from the DOM.
+                    modalScope.$destroy();
+                    modalElement.remove();
+                    
+                    //  Unless we null out all of these objects we seem to suffer
+                    //  from memory leaks, if anyone can explain why then I'd 
+                    //  be very interested to know.
+                    inputs.close = null;
+                    deferred = null;
+                    closeDeferred = null;
+                    modal = null;
+                    inputs = null;
+                    modalElement = null;
+                    modalScope = null;
+                  }, delay);
+                }
+              };
+
+              //  If we have provided any inputs, pass them to the controller.
+              if(options.inputs) {
+                for(var inputName in options.inputs) {
+                  inputs[inputName] = options.inputs[inputName];
+                }
               }
-            };
-
-            //  If we have provided any inputs, pass them to the controller.
-            if(options.inputs) {
-              for(var inputName in options.inputs) {
-                inputs[inputName] = options.inputs[inputName];
+              if (transclude){
+                template = transclude.replace(/\<transclude\>/gim, template);
               }
-            }
+              //  Parse the modal HTML into a DOM element (in template form).
+              var modalElementTemplate = angular.element(template);
 
-            //  Parse the modal HTML into a DOM element (in template form).
-            var modalElementTemplate = angular.element(template);
+              //  Compile then link the template element, building the actual element.
+              //  Set the $element on the inputs so that it can be injected if required.
+              var linkFn = $compile(modalElementTemplate);
+              var modalElement = linkFn(modalScope);
+              inputs.$element = modalElement;
 
-            //  Compile then link the template element, building the actual element.
-            //  Set the $element on the inputs so that it can be injected if required.
-            var linkFn = $compile(modalElementTemplate);
-            var modalElement = linkFn(modalScope);
-            inputs.$element = modalElement;
+              //  Create the controller, explicitly specifying the scope to use.
+              var modalController = $controller(controllerName, inputs);
 
-            //  Create the controller, explicitly specifying the scope to use.
-            var modalController = $controller(controllerName, inputs);
+              //  Finally, append the modal to the dom.
+              if (options.appendElement) {
+                // append to custom append element
+                options.appendElement.append(modalElement);
+              } else {
+                // append to body when no custom append element is specified
+                body.append(modalElement);
+              }
 
-            //  Finally, append the modal to the dom.
-            if (options.appendElement) {
-              // append to custom append element
-              options.appendElement.append(modalElement);
-            } else {
-              // append to body when no custom append element is specified
-              body.append(modalElement);
-            }
+              //  We now have a modal object...
+              var modal = {
+                controller: modalController,
+                scope: modalScope,
+                element: modalElement,
+                close: closeDeferred.promise
+              };
 
-            //  We now have a modal object...
-            var modal = {
-              controller: modalController,
-              scope: modalScope,
-              element: modalElement,
-              close: closeDeferred.promise
-            };
+              //  ...which is passed to the caller via the promise.
+              deferred.resolve(modal);
 
-            //  ...which is passed to the caller via the promise.
-            deferred.resolve(modal);
-
-          })
-          .then(null, function(error) { // 'catch' doesn't work in IE8.
-            deferred.reject(error);
-          });
+            })
+            .then(null, function(error) { // 'catch' doesn't work in IE8.
+              deferred.reject(error);
+            });
+          
+        });
 
         return deferred.promise;
       };
